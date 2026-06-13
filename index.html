@@ -28,12 +28,11 @@
     display: none; justify-content: center; align-items: center;
   }
   .admin-panel.active { display: flex; }
-  .admin-container {
-    background: var(--ivory); width: 95%; max-width: 1200px;
-    height: 90vh; border-radius: 16px; display: flex;
-    flex-direction: column; overflow: hidden;
-    position: relative;
-  }
+.admin-container {
+  background: var(--ivory); width: 95%; max-width: 1200px;
+  height: 90vh; border-radius: 16px; display: flex;
+  flex-direction: column; overflow: hidden;
+}
   .admin-header {
     background: var(--crimson); color: white; padding: 15px 20px;
     display: flex; justify-content: space-between; align-items: center;
@@ -46,10 +45,10 @@
     display: flex; align-items: center; justify-content: center;
   }
   .close-panel:hover { background: rgba(255,255,255,0.4); }
-  .admin-body {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 0; flex: 1; overflow: auto; min-height: 0;
-  }
+.admin-body {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0; flex: 1; overflow: auto;
+}
   .form-section, .list-section {
     padding: 20px; overflow-y: auto; height: 100%;
   }
