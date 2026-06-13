@@ -197,98 +197,77 @@
   <p>© 2026 Chanderi Silk Kulaiya and Sons · Woven with heritage ✦</p>
 </footer>
 
+<!-- Firebase SDK (Compatible version) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
 <script>
-// ============ CLOUDINARY ONLY - NO TOKEN, NO GOOGLE SHEETS ============
+// ============ YOUR FIREBASE CONFIGURATION (Paste kiya hua) ============
+const firebaseConfig = {
+  apiKey: "AIzaSyBqhSecZE1fWCQeGpKM6b1bj4FpO9j0878",
+  authDomain: "chanderi-sarees.firebaseapp.com",
+  databaseURL: "https://chanderi-sarees-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "chanderi-sarees",
+  storageBucket: "chanderi-sarees.firebasestorage.app",
+  messagingSenderId: "793384418882",
+  appId: "1:793384418882:web:bf86e647acf082626cb7db",
+  measurementId: "G-9TT70PTH0B"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// ============ CLOUDINARY CONFIG ============
 const CLOUD_NAME = "dmcwraq99";
 const UPLOAD_PRESET = "saree_uploads";
-const DATA_FOLDER = "saree_data";
 
-// Products stored in localStorage (backup) + Cloudinary metadata
+// ============ GLOBAL VARIABLES ============
 let products = [];
 let currentFilter = "all";
 let currentImageUrl = null;
 let editId = null;
 
-// ============ LOAD PRODUCTS FROM LOCALSTORAGE (Works for same browser) ============
+// ============ LOAD PRODUCTS FROM FIREBASE (Real-time) ============
 function loadProducts() {
-    const stored = localStorage.getItem('chanderi_products_global');
-    if (stored) {
-        products = JSON.parse(stored);
-        console.log("✅ Loaded", products.length, "products from localStorage");
-    } else {
-        // Demo products
-        products = [
-            {
-                id: "1",
-                name: "Rani Pink Silk",
-                subtitle: "Pure Silk Butta Work",
-                price: 3599,
-                original: 5999,
-                category: "silk",
-                image: "https://res.cloudinary.com/dmcwraq99/image/upload/v1/saree_data/sample"
-            }
-        ];
+    const productsRef = database.ref('products');
+    
+    productsRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            products = Object.values(data);
+            console.log("✅ Loaded", products.length, "products from Firebase");
+        } else {
+            products = [];
+            console.log("No products in Firebase");
+        }
+        renderFrontend();
+        if (document.getElementById('adminGrid')) {
+            renderAdminGrid();
+        }
+    });
+}
+
+// ============ SAVE PRODUCTS TO FIREBASE ============
+async function saveProducts() {
+    const productsRef = database.ref('products');
+    
+    // Convert array to object with keys
+    const productsObj = {};
+    products.forEach(p => {
+        productsObj[p.id] = p;
+    });
+    
+    try {
+        await productsRef.set(productsObj);
+        console.log("✅ Products saved to Firebase");
+        showToast("✅ Saved! Everyone can see now.");
+        return true;
+    } catch(e) {
+        console.error("Save error:", e);
+        showToast("❌ Save failed: " + e.message);
+        return false;
     }
-    renderFrontend();
-    if (document.getElementById('adminGrid')) {
-        renderAdminGrid();
-    }
-}
-
-// ============ SAVE PRODUCTS TO LOCALSTORAGE ============
-function saveProducts() {
-    localStorage.setItem('chanderi_products_global', JSON.stringify(products));
-    console.log("✅ Products saved to localStorage");
-    renderFrontend();
-    if (document.getElementById('adminGrid')) {
-        renderAdminGrid();
-    }
-    showToast("✅ Product saved! (This device only)");
-}
-
-// ============ SHARE INSTRUCTIONS ============
-function showShareInstructions() {
-    showToast("📱 To share with everyone: Download backup and share file with other devices");
-}
-
-function downloadBackup() {
-    const dataStr = JSON.stringify(products, null, 2);
-    const blob = new Blob([dataStr], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `chanderi_sarees_backup_${new Date().toISOString().slice(0,19)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast("✅ Backup downloaded! Share this file with other devices.");
-}
-
-function uploadBackup() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            try {
-                const imported = JSON.parse(evt.target.result);
-                if (Array.isArray(imported)) {
-                    products = imported;
-                    saveProducts();
-                    renderAdminGrid();
-                    showToast("✅ Backup restored! Refresh to see changes.");
-                } else {
-                    showToast("❌ Invalid backup file");
-                }
-            } catch(err) {
-                showToast("❌ Error parsing backup");
-            }
-        };
-        reader.readAsText(file);
-    };
-    input.click();
 }
 
 // ============ CLOUDINARY UPLOAD ============
@@ -299,7 +278,7 @@ async function uploadImage(file) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', UPLOAD_PRESET);
-    formData.append('folder', DATA_FOLDER);
+    formData.append('folder', 'chanderi_sarees');
     
     try {
         const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
@@ -333,12 +312,12 @@ function renderFrontend() {
     
     container.innerHTML = filtered.map(p => `
         <div class="product-card">
-            <img src="${p.image || 'https://placehold.co/400x500?text=Saree'}" alt="${p.name}">
+            <img src="${p.image || 'https://placehold.co/400x500?text=Saree'}" alt="${p.name}" onerror="this.src='https://placehold.co/400x500?text=Saree'">
             <div class="product-details">
                 <div class="product-name">${escapeHtml(p.name)}</div>
                 <div class="price">
-                    ₹${p.price.toLocaleString()}
-                    ${p.original ? `<span class="old-price">₹${p.original.toLocaleString()}</span>` : ''}
+                    ₹${Number(p.price).toLocaleString()}
+                    ${p.original ? `<span class="old-price">₹${Number(p.original).toLocaleString()}</span>` : ''}
                 </div>
                 <a href="https://wa.me/919770245814?text=Hi! I'm interested in ${encodeURIComponent(p.name)} (₹${p.price})" target="_blank" class="wa-btn">📱 Order on WhatsApp</a>
             </div>
@@ -372,17 +351,10 @@ function showAdmin() {
                     </select>
                 </div>
                 <input type="hidden" id="editIdField">
-                <button class="save-btn" onclick="saveProduct()">💾 Save Saree</button>
+                <button class="save-btn" onclick="saveProduct()">💾 Save Saree (Syncs to all devices)</button>
                 <button onclick="resetForm()" style="margin-top:10px; width:100%; padding:10px; background:#ddd; border:none; border-radius:8px; cursor:pointer;" id="cancelBtn">Cancel</button>
-                
-                <hr style="margin: 20px 0;">
-                <h4>📦 Backup & Share</h4>
-                <button onclick="downloadBackup()" style="width:100%; margin-bottom:10px; padding:10px; background:var(--gold); color:white; border:none; border-radius:8px; cursor:pointer;">📥 Download Backup (JSON)</button>
-                <button onclick="uploadBackup()" style="width:100%; padding:10px; background:#666; color:white; border:none; border-radius:8px; cursor:pointer;">📤 Restore from Backup</button>
-                <p style="font-size:11px; color:#666; margin-top:10px; text-align:center;">
-                    💡 To show products to everyone:<br>
-                    1. Download backup file from one device<br>
-                    2. Upload same file on other devices
+                <p style="font-size:12px; color:green; margin-top:15px; text-align:center;">
+                    ✅ All changes sync automatically to all devices!
                 </p>
             </div>
             <div class="list-section">
@@ -424,7 +396,7 @@ function renderAdminGrid() {
             <img src="${p.image || 'https://placehold.co/200x250?text=Saree'}" alt="${p.name}">
             <div class="product-info">
                 <strong>${escapeHtml(p.name)}</strong><br>
-                ₹${p.price}
+                ₹${Number(p.price).toLocaleString()}
             </div>
             <div class="product-actions">
                 <button class="edit-btn" onclick="editProduct('${p.id}')">Edit</button>
@@ -435,7 +407,7 @@ function renderAdminGrid() {
     document.getElementById('productCount').innerText = products.length;
 }
 
-function saveProduct() {
+async function saveProduct() {
     const name = document.getElementById('productName').value.trim();
     const price = parseFloat(document.getElementById('productPrice').value);
     const original = parseFloat(document.getElementById('productOriginal').value) || null;
@@ -463,15 +435,16 @@ function saveProduct() {
     if (editId) {
         const index = products.findIndex(p => p.id === editId);
         if (index !== -1) products[index] = product;
-        showToast("✏️ Product updated!");
+        showToast("✏️ Updating...");
     } else {
         products.unshift(product);
-        showToast("✅ Product added!");
+        showToast("➕ Adding...");
     }
     
-    saveProducts();
     renderAdminGrid();
+    renderFrontend();
     resetForm();
+    await saveProducts();
 }
 
 function editProduct(id) {
@@ -497,13 +470,14 @@ function editProduct(id) {
     document.getElementById('cancelBtn').style.display = 'block';
 }
 
-function deleteProduct(id) {
+async function deleteProduct(id) {
     if (confirm('Delete this saree?')) {
         products = products.filter(p => p.id !== id);
-        saveProducts();
         renderAdminGrid();
+        renderFrontend();
         resetForm();
-        showToast("🗑️ Product deleted!");
+        await saveProducts();
+        showToast("🗑️ Deleted!");
     }
 }
 
