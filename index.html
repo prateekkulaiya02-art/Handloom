@@ -145,17 +145,9 @@
   .toast-msg.show { display: block; }
   
   @media (max-width: 768px) {
-    .admin-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  flex: 1;
-  overflow: auto;  /* ✅ Yeh hona chahiye */
-  min-height: 0;   /* ✅ Yeh add karo */
-}
-   /* Admin Panel Scroll Fix */
-.admin-body {
-  overflow: hidden !important;
+   .admin-body {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0; flex: 1; overflow: scroll;  /* auto se scroll kar diya */
 }
 .form-section {
   overflow-y: auto !important;
